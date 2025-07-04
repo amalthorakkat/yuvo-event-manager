@@ -1,6 +1,7 @@
 const Event = require("../models/eventModel");
 
-const createEvent = async (req,res) => {
+// Create Event
+const createEvent = async (req, res) => {
   try {
     const { eventName, auditorium, eventType, dateTime, location } = req.body;
 
@@ -22,4 +23,14 @@ const createEvent = async (req,res) => {
   }
 };
 
-module.exports = { createEvent };
+// Get Event
+const getEvents = async (req, res) => {
+  try {
+    const events = await Event.find().sort({ dateTime: 1 }); //sort by dateTime ascending
+    res.status(200).json({ message: "Events retrieved successfully", events });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+module.exports = { createEvent, getEvents };
