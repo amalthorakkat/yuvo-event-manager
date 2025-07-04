@@ -1,0 +1,25 @@
+const Event = require("../models/eventModel");
+
+const createEvent = async (req,res) => {
+  try {
+    const { eventName, auditorium, eventType, dateTime, location } = req.body;
+
+    const createdBy = "60d5ecbb9f1b2c001f8e4c7a"; //mock user id  admin authentication (to be implemented later)
+
+    const event = new Event({
+      eventName,
+      auditorium,
+      eventType,
+      dateTime,
+      location,
+      createdBy,
+    });
+
+    await event.save();
+    res.status(201).json({ message: "Event created successfully", event });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+module.exports = { createEvent };
