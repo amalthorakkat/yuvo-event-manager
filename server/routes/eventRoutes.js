@@ -6,7 +6,22 @@ const { protect, restrictTo } = require("../middlewares/authMiddleware");
 
 // Create a new event (admin-only)
 router.post("/", protect, restrictTo("admin"), validateEvent, createEvent);
-// Retrieve all events
-router.get("/", getEvents);
+
+// Retrieve all events (optional authentication)
+router.get(
+  "/",
+  (req, res, next) => {
+    // Make protect middleware optional
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      protect(req, res, () => next());
+    } else {
+      next();
+    }
+  },
+  getEvents
+);
 
 module.exports = router;
