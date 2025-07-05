@@ -13,7 +13,7 @@ const createEvent = async (req, res) => {
       eventType,
       dateTime,
       location,
-      createdBy,
+      createdBy: req.user.id,
     });
 
     await event.save();
