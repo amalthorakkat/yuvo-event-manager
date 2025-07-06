@@ -108,4 +108,25 @@ const approveCancellation = async (req, res) => {
   }
 };
 
-module.exports = { createBooking, requestCancellation, approveCancellation };
+const getBookings = async (req, res) => {
+  try {
+    // only admins can view all booking
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const bookings = await Booking.find();
+    res
+      .status(200)
+      .json({ message: "Booking retrieved successfully", bookings });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+module.exports = {
+  createBooking,
+  requestCancellation,
+  approveCancellation,
+  getBookings,
+};

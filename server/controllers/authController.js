@@ -9,7 +9,7 @@ const registerUser = async (req, res) => {
     if (!name || !email || !password) {
       return res
         .status(400)
-        .json({ message: "Name,email and password are required" });
+        .json({ message: "Name, email, and password are required" });
     }
 
     // check if user already exist
@@ -27,7 +27,8 @@ const registerUser = async (req, res) => {
       user: { id: user._id, name, email, role },
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: message });
+    console.error("Error in registerUser:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -67,8 +68,31 @@ const loginUser = async (req, res) => {
       user: { id: user._id, name: user.name, email, role: user.role },
     });
   } catch (error) {
+    console.error("Error in loginUser:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-module.exports = { registerUser, loginUser };
+// fetch user data using req.user.id
+const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json({
+      message: "User retrieved successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getMe:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+module.exports = { registerUser, loginUser, getMe };

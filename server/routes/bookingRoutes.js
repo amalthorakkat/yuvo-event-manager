@@ -4,6 +4,8 @@ const {
   createBooking,
   requestCancellation,
   approveCancellation,
+  getBookings,
+  
 } = require("../controllers/bookingController");
 const { protect, restrictTo } = require("../middlewares/authMiddleware");
 
@@ -20,5 +22,8 @@ router.put(
   restrictTo("admin"),
   approveCancellation
 );
+
+// Get all bookings (admin-only)
+router.get('/',protect,restrictTo( 'admin'),getBookings)
 
 module.exports = router;

@@ -1,11 +1,57 @@
-import React from 'react'
+import { useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext.jsx';
+import { NavLink, useNavigate } from 'react-router-dom';
 
 const Header = () => {
-  return (
-    <div>
-      ioijoi
-    </div>
-  )
-}
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-export default Header
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  return (
+    <nav className="bg-blue-600 text-white p-4">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <h1 className="text-xl font-bold">YUVO</h1>
+        <div className="space-x-4">
+          <NavLink
+            to="/events"
+            className={({ isActive }) =>
+              isActive ? 'underline font-semibold' : 'hover:underline'
+            }
+          >
+            Events
+          </NavLink>
+          {user && user.role === 'admin' && (
+            <NavLink
+              to="/admin/dashboard"
+              className={({ isActive }) =>
+                isActive ? 'underline font-semibold' : 'hover:underline'
+              }
+            >
+              Admin Dashboard
+            </NavLink>
+          )}
+          {user ? (
+            <button onClick={handleLogout} className="hover:underline">
+              Logout
+            </button>
+          ) : (
+            <NavLink
+              to="/login"
+              className={({ isActive }) =>
+                isActive ? 'underline font-semibold' : 'hover:underline'
+              }
+            >
+              Login
+            </NavLink>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+export default Header;

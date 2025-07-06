@@ -5,13 +5,15 @@ import { Outlet } from "react-router-dom";
 
 const UserLayouts = () => {
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <Header />
 
-      <Outlet />
+      <main className="flex-grow">
+        <Outlet />
+      </main>
 
       <Footer />
-    </>
+    </div>
   );
 };
 
