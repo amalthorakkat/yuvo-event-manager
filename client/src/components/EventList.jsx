@@ -5,7 +5,7 @@ import { AuthContext } from "../context/AuthContext.jsx";
 const EventList = () => {
   const [events, setEvents] = useState([]);
   const [error, setError] = useState("");
-  const { user, token } = useContext(AuthContext);
+  const { user, loading } = useContext(AuthContext);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -17,7 +17,7 @@ const EventList = () => {
       }
     };
     fetchEvents();
-  }, [token]);
+  }, []);
 
   const handleBook = async (eventId) => {
     try {
@@ -41,6 +41,21 @@ const EventList = () => {
     }
   };
 
+  const handleUndoCancel = async (bookingId) => {
+    try {
+      await axiosInstance.post("/bookings/undo-cancel", { bookingId });
+      alert("Cancellation request undone successfully!");
+      const response = await axiosInstance.get("/events");
+      setEvents(response.data.events || []);
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Failed to undo cancellation request"
+      );
+    }
+  };
+
+  if (loading) return <div>Loading...</div>;
+
   return (
     <div className="max-w-4xl mx-auto mt-10">
       <h2 className="text-2xl font-bold mb-6">Events</h2>
@@ -54,14 +69,31 @@ const EventList = () => {
             <p>Date: {new Date(event.dateTime).toLocaleString()}</p>
             <p>Location: {event.location.address}</p>
             {user && user.role === "employee" && (
-              <div className="mt-4">
+              <div className="mt-4 flex space-x-2">
                 {event.isBooked ? (
-                  <button
-                    onClick={() => handleRequestCancel(event.bookingId)}
-                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                  >
-                    Request Cancellation
-                  </button>
+                  event.cancellationRequested ? (
+                    <>
+                      <button
+                        className="bg-gray-500 text-white px-4 py-2 rounded cursor-not-allowed"
+                        disabled
+                      >
+                        Cancellation Requested
+                      </button>
+                      <button
+                        onClick={() => handleUndoCancel(event.bookingId)}
+                        className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+                      >
+                        Cancel Cancellation Request
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleRequestCancel(event.bookingId)}
+                      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                    >
+                      Request Cancellation
+                    </button>
+                  )
                 ) : (
                   <button
                     onClick={() => handleBook(event._id)}

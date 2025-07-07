@@ -36,20 +36,23 @@ const getEvents = async (req, res) => {
       ...event._doc,
       isBooked: false,
       bookingId: null,
+      cancellationRequested: false,
     }));
 
     // If user is authenticated, include booking status and bookingId
     if (req.user && req.user.id) {
       const bookings = await Booking.find({ user: req.user.id });
-      const bookedEventIds = bookings.map((b) => b.event.toString());
       eventsWithBookingStatus = events.map((event) => {
         const booking = bookings.find(
           (b) => b.event.toString() === event._id.toString()
         );
         return {
           ...event._doc,
-          isBooked: bookedEventIds.includes(event._id.toString()),
+          isBooked: booking && booking.status === "booked",
           bookingId: booking ? booking._id : null,
+          cancellationRequested: booking
+            ? booking.cancellationRequested
+            : false,
         };
       });
     }

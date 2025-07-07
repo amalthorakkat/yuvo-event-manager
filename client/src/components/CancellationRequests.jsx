@@ -1,18 +1,22 @@
-import { useState, useEffect } from 'react';
-import axiosInstance from '../config/axiosInstance';
+import { useState, useEffect } from "react";
+import axiosInstance from "../config/axiosInstance";
 
 const CancellationRequests = () => {
   const [bookings, setBookings] = useState([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchCancellationRequests = async () => {
       try {
-        const response = await axiosInstance.get('/bookings');
-        const cancellationRequests = response.data.bookings.filter((b) => b.cancellationRequested);
+        const response = await axiosInstance.get("/bookings");
+        const cancellationRequests = response.data.bookings.filter(
+          (b) => b.cancellationRequested
+        );
         setBookings(cancellationRequests);
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch cancellation requests');
+        setError(
+          err.response?.data?.message || "Failed to fetch cancellation requests"
+        );
       }
     };
     fetchCancellationRequests();
@@ -21,12 +25,14 @@ const CancellationRequests = () => {
   const handleApproveCancel = async (bookingId) => {
     try {
       await axiosInstance.put(`/bookings/${bookingId}/approve-cancel`);
-      alert('Cancellation approved successfully!');
-      const response = await axiosInstance.get('/bookings');
-      const cancellationRequests = response.data.bookings.filter((b) => b.cancellationRequested);
+      alert("Cancellation approved successfully!");
+      const response = await axiosInstance.get("/bookings");
+      const cancellationRequests = response.data.bookings.filter(
+        (b) => b.cancellationRequested
+      );
       setBookings(cancellationRequests);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to approve cancellation');
+      setError(err.response?.data?.message || "Failed to approve cancellation");
     }
   };
 

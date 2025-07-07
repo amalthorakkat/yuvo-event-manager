@@ -5,7 +5,7 @@ const {
   requestCancellation,
   approveCancellation,
   getBookings,
-  
+  undoCancellation,
 } = require("../controllers/bookingController");
 const { protect, restrictTo } = require("../middlewares/authMiddleware");
 
@@ -24,6 +24,9 @@ router.put(
 );
 
 // Get all bookings (admin-only)
-router.get('/',protect,restrictTo( 'admin'),getBookings)
+router.get("/", protect, restrictTo("admin"), getBookings);
+
+// undo the cancellation request
+router.post("/undo-cancel", protect, restrictTo("employee"), undoCancellation);
 
 module.exports = router;

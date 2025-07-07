@@ -104,6 +104,45 @@ const approveCancellation = async (req, res) => {
       .status(200)
       .json({ message: "Cancellation approved successfully", booking });
   } catch (error) {
+    console.error("Error in approveCancellation:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// undo cancellation request
+const undoCancellation = async (req, res) => {
+  try {
+    const { bookingId } = req.body;
+
+    // Find booking
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // Check if user owns the booking
+    if (booking.user.toString() !== req.user.id) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to undo this cancellation" });
+    }
+
+    // Check if cancellation was requested
+    if (!booking.cancellationRequested) {
+      return res
+        .status(400)
+        .json({ message: "No cancellation request exists" });
+    }
+
+    // Reset cancellation request
+    booking.cancellationRequested = false;
+    await booking.save();
+
+    res
+      .status(200)
+      .json({ message: "Cancellation request undone successfully", booking });
+  } catch (error) {
+    console.error("Error in undoCancellation:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -129,4 +168,5 @@ module.exports = {
   requestCancellation,
   approveCancellation,
   getBookings,
+  undoCancellation,
 };
