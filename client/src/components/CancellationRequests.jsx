@@ -12,6 +12,7 @@ const CancellationRequests = () => {
         const cancellationRequests = response.data.bookings.filter(
           (b) => b.cancellationRequested
         );
+        console.log("Cancellation requests:", cancellationRequests); // Debug log
         setBookings(cancellationRequests);
       } catch (err) {
         setError(
@@ -30,6 +31,7 @@ const CancellationRequests = () => {
       const cancellationRequests = response.data.bookings.filter(
         (b) => b.cancellationRequested
       );
+      console.log("Updated cancellation requests:", cancellationRequests); // Debug log
       setBookings(cancellationRequests);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to approve cancellation");
@@ -43,8 +45,10 @@ const CancellationRequests = () => {
       <div className="grid gap-4">
         {bookings.map((booking) => (
           <div key={booking._id} className="p-4 bg-white rounded-lg shadow-md">
-            <p>Event ID: {booking.event}</p>
-            <p>User ID: {booking.user}</p>
+            <p>Event: {booking.event.eventName}</p>
+            <p>
+              User: {booking.user.name} ({booking.user.email})
+            </p>
             <p>Status: {booking.status}</p>
             <button
               onClick={() => handleApproveCancel(booking._id)}

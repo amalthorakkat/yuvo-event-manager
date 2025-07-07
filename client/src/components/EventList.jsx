@@ -6,26 +6,29 @@ const EventList = () => {
   const [events, setEvents] = useState([]);
   const [error, setError] = useState("");
   const { user, loading } = useContext(AuthContext);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         const response = await axiosInstance.get("/events");
+        console.log("Fetched events:", response.data.events); // Debug log
         setEvents(response.data.events || []);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to fetch events");
       }
     };
     fetchEvents();
-  }, []);
+  }, [refreshTrigger]);
 
   const handleBook = async (eventId) => {
     try {
-      await axiosInstance.post("/bookings", { eventId });
+      const response = await axiosInstance.post("/bookings", { eventId });
+      console.log("Booking response:", response.data); // Debug log
       alert("Event booked successfully!");
-      const response = await axiosInstance.get("/events");
-      setEvents(response.data.events || []);
+      setRefreshTrigger((prev) => prev + 1);
     } catch (err) {
+      console.error("Booking error:", err.response?.data); // Debug log
       setError(err.response?.data?.message || "Failed to book event");
     }
   };
@@ -34,8 +37,7 @@ const EventList = () => {
     try {
       await axiosInstance.post("/bookings/cancel", { bookingId });
       alert("Cancellation requested successfully!");
-      const response = await axiosInstance.get("/events");
-      setEvents(response.data.events || []);
+      setRefreshTrigger((prev) => prev + 1);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to request cancellation");
     }
@@ -45,8 +47,7 @@ const EventList = () => {
     try {
       await axiosInstance.post("/bookings/undo-cancel", { bookingId });
       alert("Cancellation request undone successfully!");
-      const response = await axiosInstance.get("/events");
-      setEvents(response.data.events || []);
+      setRefreshTrigger((prev) => prev + 1);
     } catch (err) {
       setError(
         err.response?.data?.message || "Failed to undo cancellation request"
@@ -68,6 +69,7 @@ const EventList = () => {
             <p>Type: {event.eventType}</p>
             <p>Date: {new Date(event.dateTime).toLocaleString()}</p>
             <p>Location: {event.location.address}</p>
+            <p>Booking Status: {event.isBooked ? "Booked" : "Not Booked"}</p>
             {user && user.role === "employee" && (
               <div className="mt-4 flex space-x-2">
                 {event.isBooked ? (

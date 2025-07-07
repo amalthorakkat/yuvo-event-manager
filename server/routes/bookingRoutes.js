@@ -6,6 +6,8 @@ const {
   approveCancellation,
   getBookings,
   undoCancellation,
+  getBookingsByEvent,
+  deleteBooking,
 } = require("../controllers/bookingController");
 const { protect, restrictTo } = require("../middlewares/authMiddleware");
 
@@ -28,5 +30,11 @@ router.get("/", protect, restrictTo("admin"), getBookings);
 
 // undo the cancellation request
 router.post("/undo-cancel", protect, restrictTo("employee"), undoCancellation);
+
+//fetching event-specific bookings.
+router.get("/event/:eventId", protect, restrictTo("admin", getBookingsByEvent));
+
+//deleting a booking
+router.delete("/:bookingId", protect, restrictTo("admin"), deleteBooking);
 
 module.exports = router;
