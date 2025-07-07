@@ -8,26 +8,27 @@ const AdminEvents = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [bookedEmployees, setBookedEmployees] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         const response = await axiosInstance.get("/events");
+        console.log("Fetched events:", response.data.events);
         setEvents(response.data.events || []);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to fetch events");
       }
     };
     fetchEvents();
-  }, []);
+  }, [refreshTrigger]);
 
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this event?")) {
       try {
         await axiosInstance.delete(`/events/${id}`);
         alert("Event deleted successfully!");
-        const response = await axiosInstance.get("/events");
-        setEvents(response.data.events || []);
+        setRefreshTrigger((prev) => prev + 1);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to delete event");
       }
@@ -37,13 +38,16 @@ const AdminEvents = () => {
   const handleViewEmployees = async (eventId) => {
     try {
       const response = await axiosInstance.get(`/bookings/event/${eventId}`);
-      console.log("Booked employees:", response.data.bookings); // Debug log
+      console.log("Booked employees:", response.data.bookings);
       setBookedEmployees(response.data.bookings || []);
       setSelectedEvent(eventId);
       setIsModalOpen(true);
     } catch (err) {
+      console.error("View employees error:", err.response?.data || err.message);
       setError(
-        err.response?.data?.message || "Failed to fetch booked employees"
+        err.response?.status === 404
+          ? "Event not found. It may have been deleted or the ID is invalid."
+          : err.response?.data?.message || "Failed to fetch booked employees"
       );
     }
   };
@@ -62,7 +66,15 @@ const AdminEvents = () => {
         );
         setBookedEmployees(response.data.bookings || []);
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to remove employee");
+        console.error(
+          "Remove employee error:",
+          err.response?.data || err.message
+        );
+        setError(
+          err.response?.status === 404
+            ? "Event not found. It may have been deleted or the ID is invalid."
+            : err.response?.data?.message || "Failed to remove employee"
+        );
       }
     }
   };
@@ -116,7 +128,7 @@ const AdminEvents = () => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg max-w-2xl w-full">
             <h3 className="text-xl font-bold mb-4">Booked Employees</h3>
             {bookedEmployees.length === 0 ? (

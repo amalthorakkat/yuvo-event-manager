@@ -22,7 +22,7 @@ const createBooking = async (req, res) => {
       eventId,
       userId: req.user.id,
       existingBooking,
-    }); // Debug log
+    });
     if (existingBooking) {
       return res
         .status(400)
@@ -37,7 +37,7 @@ const createBooking = async (req, res) => {
     });
 
     await booking.save();
-    console.log("New booking created:", booking); // Debug log
+    console.log("New booking created:", booking);
     res.status(201).json({ message: "Event booked successfully", booking });
   } catch (error) {
     console.error("Error in createBooking:", error);
@@ -107,7 +107,7 @@ const approveCancellation = async (req, res) => {
 
     // Delete the booking
     await booking.deleteOne();
-    console.log("Booking deleted on cancellation approval:", bookingId); // Debug log
+    console.log("Booking deleted on cancellation approval:", bookingId);
 
     res.status(200).json({ message: "Cancellation approved successfully" });
   } catch (error) {
@@ -176,8 +176,14 @@ const getBookingsByEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
 
+    // Validate eventId format
+    if (!eventId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: "Invalid event ID format" });
+    }
+
     // Validate event exists
     const event = await Event.findById(eventId);
+    console.log("Event check in getBookingsByEvent:", { eventId, event });
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
@@ -190,6 +196,7 @@ const getBookingsByEvent = async (req, res) => {
     const bookings = await Booking.find({ event: eventId })
       .populate("user", "name email")
       .select("user status cancellationRequested");
+    console.log("Bookings for event:", { eventId, bookings });
     res
       .status(200)
       .json({ message: "Bookings retrieved successfully", bookings });

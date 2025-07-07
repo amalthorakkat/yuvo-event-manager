@@ -32,7 +32,7 @@ router.get("/", protect, restrictTo("admin"), getBookings);
 router.post("/undo-cancel", protect, restrictTo("employee"), undoCancellation);
 
 //fetching event-specific bookings.
-router.get("/event/:eventId", protect, restrictTo("admin", getBookingsByEvent));
+router.get("/event/:eventId", protect, restrictTo("admin"), getBookingsByEvent);
 
 //deleting a booking
 router.delete("/:bookingId", protect, restrictTo("admin"), deleteBooking);
