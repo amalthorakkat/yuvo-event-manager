@@ -24,7 +24,7 @@ const registerUser = async (req, res) => {
 
     res.status(201).json({
       message: "User registered successfully",
-      user: { id: user._id, name, email, role },
+      user: { _id: user._id, name, email, role },
     });
   } catch (error) {
     console.error("Error in registerUser:", error);
@@ -62,10 +62,14 @@ const loginUser = async (req, res) => {
       { expiresIn: "1d" }
     );
 
+    console.log("Login token generated:", {
+      userId: user._id,
+      role: user.role,
+    });
     res.status(200).json({
-      message: "Login successfull",
+      message: "Login successful",
       token,
-      user: { id: user._id, name: user.name, email, role: user.role },
+      user: { _id: user._id, name: user.name, email, role: user.role },
     });
   } catch (error) {
     console.error("Error in loginUser:", error);
@@ -76,14 +80,16 @@ const loginUser = async (req, res) => {
 // fetch user data using req.user.id
 const getMe = async (req, res) => {
   try {
+    console.log("getMe called with user ID:", req.user.id);
     const user = await User.findById(req.user.id).select("-password");
     if (!user) {
+      console.error("User not found for ID:", req.user.id);
       return res.status(404).json({ message: "User not found" });
     }
     res.status(200).json({
       message: "User retrieved successfully",
       user: {
-        id: user._id,
+        _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,

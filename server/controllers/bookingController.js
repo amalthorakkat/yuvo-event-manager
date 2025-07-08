@@ -1,6 +1,7 @@
 const Booking = require("../models/bookingModel");
 const Event = require("../models/eventModel");
 const User = require("../models/userModel");
+const WageConfig = require("../models/wageConfigModel");
 
 const createBooking = async (req, res) => {
   try {
@@ -188,14 +189,14 @@ const getBookingsByEvent = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Only admins can view bookings
-    if (req.user.role !== "admin") {
+    // Only admins and supervisors can view bookings
+    if (!["admin", "supervisor"].includes(req.user.role)) {
       return res.status(403).json({ message: "Access denied" });
     }
 
     const bookings = await Booking.find({ event: eventId })
       .populate("user", "name email")
-      .select("user status cancellationRequested");
+      .select("user status cancellationRequested attendance fine");
     console.log("Bookings for event:", { eventId, bookings });
     res
       .status(200)
@@ -229,6 +230,189 @@ const deleteBooking = async (req, res) => {
   }
 };
 
+const markAttendance = async (req, res) => {
+  try {
+    const { bookingId, attendance } = req.body;
+    const { eventId } = req.params;
+
+    if (!["attended", "absent"].includes(attendance)) {
+      return res.status(400).json({ message: "Invalid attendance status" });
+    }
+
+    const booking = await Booking.findById(bookingId).populate("user event");
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (booking.event._id.toString() !== eventId) {
+      return res
+        .status(400)
+        .json({ message: "Booking does not belong to this event" });
+    }
+
+    booking.attendance = attendance;
+    await booking.save();
+
+    if (attendance === "attended") {
+      const wageConfig = await WageConfig.findOne({ role: booking.user.role });
+      const wage = wageConfig
+        ? wageConfig.wage
+        : booking.user.role === "supervisor"
+        ? 750
+        : 450;
+      const fine = booking.fine || 0;
+
+      const workHistoryEntry = {
+        eventId: booking.event._id,
+        eventName: booking.event.eventName,
+        date: booking.event.dateTime,
+        attendance,
+        wage,
+        fine,
+      };
+
+      const updatedUser = await User.findByIdAndUpdate(
+        booking.user._id,
+        {
+          $push: { workHistory: workHistoryEntry },
+          $inc: { totalWages: wage - fine },
+        },
+        { new: true }
+      );
+      console.log("User updated with work history:", {
+        userId: booking.user._id,
+        workHistory: updatedUser.workHistory,
+        totalWages: updatedUser.totalWages,
+      });
+    } else {
+      await User.findByIdAndUpdate(booking.user._id, {
+        $pull: { workHistory: { eventId: booking.event._id } },
+      });
+    }
+
+    console.log("Attendance marked:", { bookingId, attendance });
+    res.status(200).json({ message: "Attendance marked successfully" });
+  } catch (error) {
+    console.error("Mark attendance error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const assignFine = async (req, res) => {
+  try {
+    const { bookingId, fine } = req.body;
+    const { eventId } = req.params;
+
+    if (typeof fine !== "number" || fine < 0) {
+      return res.status(400).json({ message: "Invalid fine amount" });
+    }
+
+    const booking = await Booking.findById(bookingId).populate("user event");
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (booking.event._id.toString() !== eventId) {
+      return res
+        .status(400)
+        .json({ message: "Booking does not belong to this event" });
+    }
+
+    const prevFine = booking.fine || 0;
+    booking.fine = fine;
+    await booking.save();
+
+    if (booking.attendance === "attended") {
+      const wageConfig = await WageConfig.findOne({ role: booking.user.role });
+      const wage = wageConfig
+        ? wageConfig.wage
+        : booking.user.role === "supervisor"
+        ? 750
+        : 450;
+
+      const updatedUser = await User.findByIdAndUpdate(
+        booking.user._id,
+        {
+          $set: { "workHistory.$[elem].fine": fine },
+          $inc: { totalWages: prevFine - fine },
+        },
+        {
+          arrayFilters: [{ "elem.eventId": booking.event._id }],
+          new: true,
+        }
+      );
+      console.log("User updated with fine:", {
+        userId: booking.user._id,
+        workHistory: updatedUser.workHistory,
+        totalWages: updatedUser.totalWages,
+      });
+    }
+
+    console.log("Fine assigned:", { bookingId, fine });
+    res.status(200).json({ message: "Fine assigned successfully" });
+  } catch (error) {
+    console.error("Assign fine error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const setWageConfig = async (req, res) => {
+  try {
+    const { role, wage } = req.body;
+
+    // Only admins can set wage config
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    // Validate inputs
+    if (!["employee", "supervisor"].includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+    if (typeof wage !== "number" || wage < 0) {
+      return res
+        .status(400)
+        .json({ message: "Wage must be a non-negative number" });
+    }
+
+    // Update or create wage config
+    const wageConfig = await WageConfig.findOneAndUpdate(
+      { role },
+      { wage },
+      { upsert: true, new: true }
+    );
+
+    console.log("Wage config updated:", { role, wage });
+
+    res
+      .status(200)
+      .json({ message: "Wage config updated successfully", wageConfig });
+  } catch (error) {
+    console.error("Error in setWageConfig:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+const getWorkHistory = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId).select(
+      "workHistory totalWages"
+    );
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    console.log("Work history fetched:", {
+      userId: req.params.userId,
+      workHistory: user.workHistory,
+      totalWages: user.totalWages,
+    });
+    res.status(200).json({ user });
+  } catch (error) {
+    console.error("Get work history error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   createBooking,
   requestCancellation,
@@ -237,4 +421,8 @@ module.exports = {
   getBookings,
   getBookingsByEvent,
   deleteBooking,
+  markAttendance,
+  assignFine,
+  setWageConfig,
+  getWorkHistory,
 };

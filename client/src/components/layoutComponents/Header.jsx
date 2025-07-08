@@ -25,13 +25,43 @@ const Header = () => {
             Events
           </NavLink>
           {user && user.role === 'admin' && (
+            <>
+              <NavLink
+                to="/admin/dashboard"
+                className={({ isActive }) =>
+                  isActive ? 'underline font-semibold' : 'hover:underline'
+                }
+              >
+                Admin Dashboard
+              </NavLink>
+              <NavLink
+                to="/admin/wages"
+                className={({ isActive }) =>
+                  isActive ? 'underline font-semibold' : 'hover:underline'
+                }
+              >
+                Wage Config
+              </NavLink>
+            </>
+          )}
+          {user && user.role === 'supervisor' && (
             <NavLink
-              to="/admin/dashboard"
+              to="/supervisor"
               className={({ isActive }) =>
                 isActive ? 'underline font-semibold' : 'hover:underline'
               }
             >
-              Admin Dashboard
+              Supervisor Dashboard
+            </NavLink>
+          )}
+          {user && (user.role === 'employee' || user.role === 'supervisor') && (
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) =>
+                isActive ? 'underline font-semibold' : 'hover:underline'
+              }
+            >
+              My Dashboard
             </NavLink>
           )}
           {user ? (

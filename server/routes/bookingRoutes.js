@@ -8,10 +8,14 @@ const {
   undoCancellation,
   getBookingsByEvent,
   deleteBooking,
+  markAttendance,
+  assignFine,
+  setWageConfig,
+  getWorkHistory,
 } = require("../controllers/bookingController");
 const { protect, restrictTo } = require("../middlewares/authMiddleware");
 
-//  Book an event (employee-only)
+// Book an event (employee-only)
 router.post("/", protect, restrictTo("employee"), createBooking);
 
 // Request cancellation (employee-only)
@@ -28,13 +32,33 @@ router.put(
 // Get all bookings (admin-only)
 router.get("/", protect, restrictTo("admin"), getBookings);
 
-// undo the cancellation request
+// Undo the cancellation request
 router.post("/undo-cancel", protect, restrictTo("employee"), undoCancellation);
 
-//fetching event-specific bookings.
-router.get("/event/:eventId", protect, restrictTo("admin"), getBookingsByEvent);
+// Fetching event-specific bookings
+router.get(
+  "/event/:eventId",
+  protect,
+  restrictTo("admin", "supervisor"),
+  getBookingsByEvent
+);
 
-//deleting a booking
+// Deleting a booking
 router.delete("/:bookingId", protect, restrictTo("admin"), deleteBooking);
+
+router.post(
+  "/event/:eventId/attendance",
+  protect,
+  restrictTo("admin", "supervisor"),
+  markAttendance
+);
+router.post(
+  "/event/:eventId/fines",
+  protect,
+  restrictTo("admin", "supervisor"),
+  assignFine
+);
+router.post("/wages/config", protect, restrictTo("admin"), setWageConfig);
+router.get("/user/:userId/work-history", protect, getWorkHistory);
 
 module.exports = router;

@@ -13,13 +13,21 @@ import AdminEvents from "./components/AdminEvents";
 import AdminEventForm from "./components/AdminEventForm";
 import AdminUsers from "./components/AdminUsers";
 import CancellationRequests from "./components/CancellationRequests";
+import SupervisorDashboard from "./components/SupervisorDashboard";
+import EmployeeDashboard from "./components/EmployeeDashboard";
+import WageConfig from "./components/WageConfig";
 import { useContext } from "react";
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, loading } = useContext(AuthContext);
   if (loading) return <div>Loading...</div>;
   if (!user) return <Navigate to="/login" />;
-  if (role && user.role !== role) return <Navigate to="/events" />;
+  if (
+    role &&
+    (Array.isArray(role) ? !role.includes(user.role) : user.role !== role)
+  ) {
+    return <Navigate to="/events" />;
+  }
   return children;
 };
 
@@ -46,7 +54,24 @@ function App() {
             <Route path="events/edit/:id" element={<AdminEventForm />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="cancellations" element={<CancellationRequests />} />
+            <Route path="wages" element={<WageConfig />} />
           </Route>
+          <Route
+            path="supervisor"
+            element={
+              <ProtectedRoute role="supervisor">
+                <SupervisorDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="dashboard"
+            element={
+              <ProtectedRoute role={["employee", "supervisor"]}>
+                <EmployeeDashboard />
+              </ProtectedRoute>
+            }
+          />
         </Route>
       </Routes>
     </AuthProvider>

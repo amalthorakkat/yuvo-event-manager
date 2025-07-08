@@ -79,6 +79,44 @@ const AdminEvents = () => {
     }
   };
 
+  const handleMarkAttendance = async (bookingId, attendance) => {
+    try {
+      const response = await axiosInstance.post(
+        `/bookings/event/${selectedEvent}/attendance`,
+        {
+          bookingId,
+          attendance,
+        }
+      );
+      alert("Attendance marked successfully!");
+      const updatedResponse = await axiosInstance.get(
+        `/bookings/event/${selectedEvent}`
+      );
+      setBookedEmployees(updatedResponse.data.bookings || []);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to mark attendance");
+    }
+  };
+
+  const handleAssignFine = async (bookingId, fine) => {
+    try {
+      const response = await axiosInstance.post(
+        `/bookings/event/${selectedEvent}/fines`,
+        {
+          bookingId,
+          fine: parseFloat(fine),
+        }
+      );
+      alert("Fine assigned successfully!");
+      const updatedResponse = await axiosInstance.get(
+        `/bookings/event/${selectedEvent}`
+      );
+      setBookedEmployees(updatedResponse.data.bookings || []);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to assign fine");
+    }
+  };
+
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedEvent(null);
@@ -120,7 +158,7 @@ const AdminEvents = () => {
                 onClick={() => handleViewEmployees(event._id)}
                 className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
               >
-                View Booked Employees
+                Manage Employees
               </button>
             </div>
           </div>
@@ -128,9 +166,9 @@ const AdminEvents = () => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg max-w-2xl w-full">
-            <h3 className="text-xl font-bold mb-4">Booked Employees</h3>
+            <h3 className="text-xl font-bold mb-4">Manage Employees</h3>
             {bookedEmployees.length === 0 ? (
               <p>No employees booked for this event.</p>
             ) : (
@@ -140,15 +178,58 @@ const AdminEvents = () => {
                     <p>Name: {booking.user.name}</p>
                     <p>Email: {booking.user.email}</p>
                     <p>Status: {booking.status}</p>
+                    <p>Attendance: {booking.attendance}</p>
+                    <p>Fine: ₹{booking.fine.toFixed(2)}</p>
                     {booking.cancellationRequested && (
                       <p className="text-red-500">Cancellation Requested</p>
                     )}
-                    <button
-                      onClick={() => handleRemoveEmployee(booking._id)}
-                      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 mt-2"
-                    >
-                      Remove
-                    </button>
+                    <div className="flex space-x-2 mt-2">
+                      <button
+                        onClick={() =>
+                          handleMarkAttendance(booking._id, "attended")
+                        }
+                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                        disabled={booking.attendance === "attended"}
+                      >
+                        Mark Attended
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleMarkAttendance(booking._id, "absent")
+                        }
+                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                        disabled={booking.attendance === "absent"}
+                      >
+                        Mark Absent
+                      </button>
+                      <button
+                        onClick={() => handleRemoveEmployee(booking._id)}
+                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <div className="mt-2">
+                      <input
+                        type="number"
+                        placeholder="Enter fine amount"
+                        onChange={(e) => {
+                          const fine = e.target.value;
+                          if (fine >= 0) {
+                            handleAssignFine(booking._id, fine);
+                          }
+                        }}
+                        className="border p-2 rounded mr-2"
+                        min="0"
+                        step="0.01"
+                      />
+                      <button
+                        onClick={() => handleAssignFine(booking._id, 0)}
+                        className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+                      >
+                        Clear Fine
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -27,6 +27,36 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  workHistory: [
+    {
+      eventId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Event",
+      },
+      eventName: String,
+      date: Date,
+      attendance: {
+        type: String,
+        enum: ["attended", "absent", "pending"],
+        default: "pending",
+      },
+      wage: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      fine: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+    },
+  ],
+  totalWages: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
 });
 
 // hash the password before saving
