@@ -2,6 +2,7 @@ const Booking = require("../models/bookingModel");
 const Event = require("../models/eventModel");
 const User = require("../models/userModel");
 const WageConfig = require("../models/wageConfigModel");
+const paymentHistory = require("../models/paymentHistoryModel");
 
 const createBooking = async (req, res) => {
   try {
@@ -250,6 +251,11 @@ const markAttendance = async (req, res) => {
         .json({ message: "Booking does not belong to this event" });
     }
 
+    const user = await User.findById(booking.user._id);
+    const existingEntry = user.workHistory.find(
+      (entry) => entry.eventId.toString() === eventId
+    );
+
     booking.attendance = attendance;
     await booking.save();
 
@@ -269,28 +275,58 @@ const markAttendance = async (req, res) => {
         attendance,
         wage,
         fine,
+        amountPaid: 0,
       };
 
-      const updatedUser = await User.findByIdAndUpdate(
+      if (existingEntry) {
+        await User.findByIdAndUpdate(
+          booking.user._id,
+          {
+            $set: { "workHistory.$[elem]": workHistoryEntry },
+            $inc: {
+              totalWages:
+                -existingEntry.wage + existingEntry.fine + wage - fine,
+              balance: -existingEntry.wage + existingEntry.fine + wage - fine,
+            },
+          },
+          {
+            arrayFilters: [{ "elem.eventId": booking.event._id }],
+            new: true,
+          }
+        );
+      } else {
+        await User.findByIdAndUpdate(
+          booking.user._id,
+          {
+            $push: { workHistory: workHistoryEntry },
+            $inc: { totalWages: wage - fine, balance: wage - fine },
+          },
+          { new: true }
+        );
+      }
+    } else if (attendance === "absent" && existingEntry) {
+      await User.findByIdAndUpdate(
         booking.user._id,
         {
-          $push: { workHistory: workHistoryEntry },
-          $inc: { totalWages: wage - fine },
+          $pull: { workHistory: { eventId: booking.event._id } },
+          $inc: {
+            totalWages: -existingEntry.wage + existingEntry.fine,
+            balance: -existingEntry.wage + existingEntry.fine,
+          },
         },
         { new: true }
       );
-      console.log("User updated with work history:", {
-        userId: booking.user._id,
-        workHistory: updatedUser.workHistory,
-        totalWages: updatedUser.totalWages,
-      });
-    } else {
-      await User.findByIdAndUpdate(booking.user._id, {
-        $pull: { workHistory: { eventId: booking.event._id } },
-      });
     }
 
-    console.log("Attendance marked:", { bookingId, attendance });
+    const updatedUser = await User.findById(booking.user._id);
+    console.log("Attendance marked:", {
+      bookingId,
+      attendance,
+      userId: booking.user._id,
+      workHistory: updatedUser.workHistory,
+      totalWages: updatedUser.totalWages,
+      balance: updatedUser.balance,
+    });
     res.status(200).json({ message: "Attendance marked successfully" });
   } catch (error) {
     console.error("Mark attendance error:", error);
@@ -396,7 +432,7 @@ const setWageConfig = async (req, res) => {
 const getWorkHistory = async (req, res) => {
   try {
     const user = await User.findById(req.params.userId).select(
-      "workHistory totalWages"
+      "workHistory totalWages balance"
     );
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -405,10 +441,129 @@ const getWorkHistory = async (req, res) => {
       userId: req.params.userId,
       workHistory: user.workHistory,
       totalWages: user.totalWages,
+      balance: user.balance,
     });
     res.status(200).json({ user });
   } catch (error) {
     console.error("Get work history error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const searchEmployeeEarnings = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+    const user = await User.findOne({ email }).select(
+      "workHistory totalWages balance"
+    );
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    console.log("Employee earnings fetched:", {
+      userId: user._id,
+      workHistory: user.workHistory,
+      totalWages: user.totalWages,
+      balance: user.balance,
+    });
+    res.status(200).json({ user });
+  } catch (error) {
+    console.error("Search employee earnings error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const processPayment = async (req, res) => {
+  try {
+    const { employeeId, eventId, amountPaid } = req.body;
+    const adminId = req.user.id;
+
+    if (
+      !employeeId ||
+      !eventId ||
+      typeof amountPaid !== "number" ||
+      amountPaid < 0
+    ) {
+      return res
+        .status(400)
+        .json({
+          message: "Employee ID, event ID, and valid amount paid are required",
+        });
+    }
+
+    const user = await User.findById(employeeId);
+    if (!user) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    const workHistoryEntry = user.workHistory.find(
+      (entry) => entry.eventId.toString() === eventId
+    );
+    if (!workHistoryEntry) {
+      return res
+        .status(404)
+        .json({ message: "Work history entry not found for this event" });
+    }
+
+    if (amountPaid > user.balance) {
+      return res
+        .status(400)
+        .json({ message: "Payment amount exceeds balance" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      employeeId,
+      {
+        $inc: {
+          "workHistory.$[elem].amountPaid": amountPaid,
+          balance: -amountPaid,
+        },
+      },
+      {
+        arrayFilters: [{ "elem.eventId": eventId }],
+        new: true,
+      }
+    );
+
+    const payment = new PaymentHistory({
+      adminId,
+      employeeId,
+      eventId,
+      amountPaid,
+    });
+    await payment.save();
+
+    console.log("Payment processed:", {
+      adminId,
+      employeeId,
+      eventId,
+      amountPaid,
+      balance: updatedUser.balance,
+    });
+    res
+      .status(200)
+      .json({
+        message: "Payment processed successfully",
+        balance: updatedUser.balance,
+      });
+  } catch (error) {
+    console.error("Process payment error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getPaymentHistory = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const payments = await PaymentHistory.find({ adminId })
+      .populate("employeeId", "name email")
+      .populate("eventId", "eventName");
+    console.log("Payment history fetched:", { adminId, payments });
+    res.status(200).json({ payments });
+  } catch (error) {
+    console.error("Get payment history error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

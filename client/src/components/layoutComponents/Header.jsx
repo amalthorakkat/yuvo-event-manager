@@ -34,14 +34,7 @@ const Header = () => {
               >
                 Admin Dashboard
               </NavLink>
-              <NavLink
-                to="/admin/wages"
-                className={({ isActive }) =>
-                  isActive ? 'underline font-semibold' : 'hover:underline'
-                }
-              >
-                Wage Config
-              </NavLink>
+              
             </>
           )}
           {user && user.role === 'supervisor' && (

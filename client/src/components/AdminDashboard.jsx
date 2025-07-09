@@ -1,11 +1,11 @@
-import { useContext, useState } from 'react';
-import { AuthContext } from '../context/AuthContext.jsx';
-import { NavLink, Outlet } from 'react-router-dom';
+import { useContext, useState } from "react";
+import { AuthContext } from "../context/AuthContext.jsx";
+import { NavLink, Outlet } from "react-router-dom";
 
 const AdminDashboard = () => {
   const { user } = useContext(AuthContext);
 
-  if (!user || user.role !== 'admin') {
+  if (!user || user.role !== "admin") {
     return null; // ProtectedRoute will handle redirection
   }
 
@@ -17,7 +17,9 @@ const AdminDashboard = () => {
           <NavLink
             to="/admin/events"
             className={({ isActive }) =>
-              isActive ? 'block p-2 bg-blue-500 rounded' : 'block p-2 hover:bg-blue-500 rounded'
+              isActive
+                ? "block p-2 bg-blue-500 rounded"
+                : "block p-2 hover:bg-blue-500 rounded"
             }
           >
             Manage Events
@@ -25,7 +27,9 @@ const AdminDashboard = () => {
           <NavLink
             to="/admin/users"
             className={({ isActive }) =>
-              isActive ? 'block p-2 bg-blue-500 rounded' : 'block p-2 hover:bg-blue-500 rounded'
+              isActive
+                ? "block p-2 bg-blue-500 rounded"
+                : "block p-2 hover:bg-blue-500 rounded"
             }
           >
             Manage Users
@@ -33,10 +37,22 @@ const AdminDashboard = () => {
           <NavLink
             to="/admin/cancellations"
             className={({ isActive }) =>
-              isActive ? 'block p-2 bg-blue-500 rounded' : 'block p-2 hover:bg-blue-500 rounded'
+              isActive
+                ? "block p-2 bg-blue-500 rounded"
+                : "block p-2 hover:bg-blue-500 rounded"
             }
           >
             Cancellation Requests
+          </NavLink>
+          <NavLink
+            to="/admin/wages"
+            className={({ isActive }) =>
+              isActive
+                ? "block p-2 bg-blue-500 rounded"
+                : "block p-2 hover:bg-blue-500 rounded"
+            }
+          >
+            Wage Config
           </NavLink>
         </nav>
       </aside>

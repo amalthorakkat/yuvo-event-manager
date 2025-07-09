@@ -33,8 +33,8 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Event",
       },
-      eventName: String,
-      date: Date,
+      eventName: { type: String },
+      date: { type: Date },
       attendance: {
         type: String,
         enum: ["attended", "absent", "pending"],
@@ -50,12 +50,20 @@ const userSchema = new mongoose.Schema({
         default: 0,
         min: 0,
       },
+      amountPaid: {
+        type: Number,
+        default: 0,
+      },
     },
   ],
   totalWages: {
     type: Number,
     default: 0,
     min: 0,
+  },
+  balance: {
+    type: Number,
+    default: 0,
   },
 });
 
