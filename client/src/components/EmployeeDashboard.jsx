@@ -9,6 +9,7 @@ const EmployeeDashboard = () => {
   const [totalWageAcquired, setTotalWageAcquired] = useState(0);
   const [totalFines, setTotalFines] = useState(0);
   const [balance, setBalance] = useState(0);
+  const [amountPaid, setAmountPaid] = useState(0);
   const [error, setError] = useState("");
   const { user, loading } = useContext(AuthContext);
 
@@ -25,6 +26,8 @@ const EmployeeDashboard = () => {
         console.log("Work history response:", response.data);
         const workHistoryData = response.data.user.workHistory || [];
         const totalWagesData = response.data.user.totalWages || 0;
+        const balanceData = response.data.user.balance || 0;
+        const amountPaidData = response.data.user.amountPaid || 0;
         const totalWageAcquiredData = workHistoryData.reduce(
           (sum, entry) => sum + entry.wage,
           0
@@ -37,7 +40,8 @@ const EmployeeDashboard = () => {
         setTotalWages(totalWagesData);
         setTotalWageAcquired(totalWageAcquiredData);
         setTotalFines(totalFinesData);
-        setBalance(totalWagesData); // Balance equals totalWages for now
+        setBalance(balanceData);
+        setAmountPaid(amountPaidData);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to fetch work history");
         console.error(
@@ -67,6 +71,9 @@ const EmployeeDashboard = () => {
         </p>
         <p className="text-lg">
           <strong>Balance Amount:</strong> ₹{balance.toFixed(2)}
+        </p>
+        <p className="text-lg">
+          <strong>Amount Paid:</strong> ₹{amountPaid.toFixed(2)}
         </p>
       </div>
       <div className="grid gap-4">

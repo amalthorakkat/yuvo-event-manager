@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import axiosInstance from "../config/axiosInstance";
 
@@ -9,6 +9,9 @@ const AdminEvents = () => {
   const [bookedEmployees, setBookedEmployees] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -18,10 +21,21 @@ const AdminEvents = () => {
         setEvents(response.data.events || []);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to fetch events");
+        console.error("Fetch events error:", err.response?.data || err.message);
       }
     };
     fetchEvents();
   }, [refreshTrigger]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this event?")) {
@@ -31,6 +45,7 @@ const AdminEvents = () => {
         setRefreshTrigger((prev) => prev + 1);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to delete event");
+        console.error("Delete event error:", err.response?.data || err.message);
       }
     }
   };
@@ -95,6 +110,10 @@ const AdminEvents = () => {
       setBookedEmployees(updatedResponse.data.bookings || []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to mark attendance");
+      console.error(
+        "Mark attendance error:",
+        err.response?.data || err.message
+      );
     }
   };
 
@@ -114,8 +133,46 @@ const AdminEvents = () => {
       setBookedEmployees(updatedResponse.data.bookings || []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to assign fine");
+      console.error("Assign fine error:", err.response?.data || err.message);
     }
   };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setShowSuggestions(e.target.value.length > 0);
+    console.log("Search query updated:", e.target.value);
+  };
+
+  const handleSuggestionClick = (value) => {
+    setSearchQuery(value);
+    setShowSuggestions(false);
+    console.log("Suggestion selected:", value);
+  };
+
+  // Filter events based on search query
+  const filteredEvents = events.filter((event) =>
+    searchQuery
+      ? event.eventName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.auditorium.toLowerCase().includes(searchQuery.toLowerCase())
+      : true
+  );
+
+  // Get unique events for suggestions
+  const uniqueEvents = [
+    ...new Map(
+      events.map((event) => [
+        event._id,
+        {
+          eventName: event.eventName,
+          auditorium: event.auditorium,
+        },
+      ])
+    ).values(),
+  ].filter(
+    (event) =>
+      event.eventName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.auditorium.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -133,36 +190,65 @@ const AdminEvents = () => {
       >
         Create New Event
       </Link>
+      <div className="mb-4 relative" ref={searchRef}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={handleSearchChange}
+          placeholder="Search events by name or auditorium"
+          className="p-2 border rounded w-full"
+          onFocus={() => setShowSuggestions(searchQuery.length > 0)}
+        />
+        {showSuggestions && uniqueEvents.length > 0 && (
+          <ul className="absolute z-10 w-full bg-white border rounded shadow-md mt-1 max-h-60 overflow-y-auto">
+            {uniqueEvents.map((event, index) => (
+              <li
+                key={index}
+                className="p-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() =>
+                  handleSuggestionClick(event.eventName || event.auditorium)
+                }
+              >
+                {event.eventName} ({event.auditorium})
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <div className="grid gap-4">
-        {events.map((event) => (
-          <div key={event._id} className="p-4 bg-white rounded-lg shadow-md">
-            <h3 className="text-xl font-semibold">{event.eventName}</h3>
-            <p>Auditorium: {event.auditorium}</p>
-            <p>Type: {event.eventType}</p>
-            <p>Date: {new Date(event.dateTime).toLocaleString()}</p>
-            <p>Location: {event.location.address}</p>
-            <div className="flex space-x-2 mt-2">
-              <Link
-                to={`/admin/events/edit/${event._id}`}
-                className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-              >
-                Edit
-              </Link>
-              <button
-                onClick={() => handleDelete(event._id)}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => handleViewEmployees(event._id)}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              >
-                Manage Employees
-              </button>
+        {filteredEvents.length === 0 ? (
+          <p>No events found.</p>
+        ) : (
+          filteredEvents.map((event) => (
+            <div key={event._id} className="p-4 bg-white rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold">{event.eventName}</h3>
+              <p>Auditorium: {event.auditorium}</p>
+              <p>Type: {event.eventType}</p>
+              <p>Date: {new Date(event.dateTime).toLocaleString()}</p>
+              <p>Location: {event.location.address}</p>
+              <div className="flex space-x-2 mt-2">
+                <Link
+                  to={`/admin/events/edit/${event._id}`}
+                  className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+                >
+                  Edit
+                </Link>
+                <button
+                  onClick={() => handleDelete(event._id)}
+                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => handleViewEmployees(event._id)}
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                >
+                  Manage Employees
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {isModalOpen && (

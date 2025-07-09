@@ -12,6 +12,10 @@ const {
   assignFine,
   setWageConfig,
   getWorkHistory,
+  searchEmployeeEarnings,
+  processPayment,
+  getPaymentHistory,
+  getWageConfig,
 } = require("../controllers/bookingController");
 const { protect, restrictTo } = require("../middlewares/authMiddleware");
 
@@ -60,5 +64,11 @@ router.post(
 );
 router.post("/wages/config", protect, restrictTo("admin"), setWageConfig);
 router.get("/user/:userId/work-history", protect, getWorkHistory);
+
+router.get("/earnings", protect, restrictTo("admin"), searchEmployeeEarnings);
+router.post("/payment", protect, restrictTo("admin"), processPayment);
+router.get("/payment-history", protect, restrictTo("admin"), getPaymentHistory);
+
+router.get("/wage-config", protect, restrictTo("admin"), getWageConfig);
 
 module.exports = router;

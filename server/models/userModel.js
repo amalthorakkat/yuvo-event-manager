@@ -50,10 +50,6 @@ const userSchema = new mongoose.Schema({
         default: 0,
         min: 0,
       },
-      amountPaid: {
-        type: Number,
-        default: 0,
-      },
     },
   ],
   totalWages: {
@@ -62,6 +58,10 @@ const userSchema = new mongoose.Schema({
     min: 0,
   },
   balance: {
+    type: Number,
+    default: 0,
+  },
+  amountPaid: {
     type: Number,
     default: 0,
   },

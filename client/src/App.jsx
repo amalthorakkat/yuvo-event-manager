@@ -55,6 +55,7 @@ function App() {
             <Route path="users" element={<AdminUsers />} />
             <Route path="cancellations" element={<CancellationRequests />} />
             <Route path="wages" element={<WageConfig />} />
+   
           </Route>
           <Route
             path="supervisor"
