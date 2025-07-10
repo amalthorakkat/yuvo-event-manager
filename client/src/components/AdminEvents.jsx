@@ -12,25 +12,52 @@ const AdminEvents = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef(null);
+  // Booking form states
+  const [isBookingFormOpen, setIsBookingFormOpen] = useState(false);
+  const [bookingForm, setBookingForm] = useState({
+    eventQuery: "",
+    eventId: "",
+    employeeEmail: "",
+  });
+  const [eventSuggestions, setEventSuggestions] = useState([]);
+  const [userSuggestions, setUserSuggestions] = useState([]);
+  const [showEventDropdown, setShowEventDropdown] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const eventRef = useRef(null);
+  const userRef = useRef(null);
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axiosInstance.get("/events");
-        console.log("Fetched events:", response.data.events);
-        setEvents(response.data.events || []);
+        // Fetch events
+        const eventsResponse = await axiosInstance.get("/events");
+        console.log("Fetched events:", eventsResponse.data.events);
+        setEvents(eventsResponse.data.events || []);
+        setEventSuggestions(eventsResponse.data.events || []);
+        // Fetch users for employee suggestions
+        const usersResponse = await axiosInstance.get("/users");
+        console.log("Fetched users:", usersResponse.data.users);
+        const employees =
+          usersResponse.data.users.filter((u) => u.role === "employee") || [];
+        setUserSuggestions(employees);
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to fetch events");
-        console.error("Fetch events error:", err.response?.data || err.message);
+        setError(err.response?.data?.message || "Failed to fetch data");
+        console.error("Fetch data error:", err.response?.data || err.message);
       }
     };
-    fetchEvents();
+    fetchData();
   }, [refreshTrigger]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setShowSuggestions(false);
+      }
+      if (eventRef.current && !eventRef.current.contains(event.target)) {
+        setShowEventDropdown(false);
+      }
+      if (userRef.current && !userRef.current.contains(event.target)) {
+        setShowUserDropdown(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -96,13 +123,10 @@ const AdminEvents = () => {
 
   const handleMarkAttendance = async (bookingId, attendance) => {
     try {
-      const response = await axiosInstance.post(
-        `/bookings/event/${selectedEvent}/attendance`,
-        {
-          bookingId,
-          attendance,
-        }
-      );
+      await axiosInstance.post(`/bookings/event/${selectedEvent}/attendance`, {
+        bookingId,
+        attendance,
+      });
       alert("Attendance marked successfully!");
       const updatedResponse = await axiosInstance.get(
         `/bookings/event/${selectedEvent}`
@@ -119,13 +143,10 @@ const AdminEvents = () => {
 
   const handleAssignFine = async (bookingId, fine) => {
     try {
-      const response = await axiosInstance.post(
-        `/bookings/event/${selectedEvent}/fines`,
-        {
-          bookingId,
-          fine: parseFloat(fine),
-        }
-      );
+      await axiosInstance.post(`/bookings/event/${selectedEvent}/fines`, {
+        bookingId,
+        fine: parseFloat(fine),
+      });
       alert("Fine assigned successfully!");
       const updatedResponse = await axiosInstance.get(
         `/bookings/event/${selectedEvent}`
@@ -149,7 +170,88 @@ const AdminEvents = () => {
     console.log("Suggestion selected:", value);
   };
 
-  // Filter events based on search query
+  const handleBookingChange = (e) => {
+    const { name, value } = e.target;
+    setBookingForm((prev) => ({ ...prev, [name]: value }));
+    if (name === "eventQuery") {
+      const filteredEvents = events.filter(
+        (event) =>
+          event.eventName.toLowerCase().includes(value.toLowerCase()) ||
+          event.auditorium.toLowerCase().includes(value.toLowerCase())
+      );
+      setEventSuggestions(filteredEvents);
+      setShowEventDropdown(value.length > 0);
+    } else if (name === "employeeEmail") {
+      const filteredUsers = userSuggestions.filter(
+        (user) =>
+          user.email.toLowerCase().includes(value.toLowerCase()) ||
+          user.name.toLowerCase().includes(value.toLowerCase())
+      );
+      setUserSuggestions(filteredUsers);
+      setShowUserDropdown(value.length > 0);
+    }
+    console.log("Booking form updated:", { ...bookingForm, [name]: value });
+  };
+
+  const handleEventSuggestionClick = (event) => {
+    setBookingForm((prev) => ({
+      ...prev,
+      eventQuery: event.eventName,
+      eventId: event._id,
+    }));
+    setShowEventDropdown(false);
+    console.log("Event suggestion selected:", event._id);
+  };
+
+  const handleUserSuggestionClick = (user) => {
+    setBookingForm((prev) => ({ ...prev, employeeEmail: user.email }));
+    setShowUserDropdown(false);
+    console.log("User suggestion selected:", user.email);
+  };
+
+  const handleBookingSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Validate inputs
+      const event = events.find((e) => e._id === bookingForm.eventId);
+      const user = userSuggestions.find(
+        (u) => u.email === bookingForm.employeeEmail
+      );
+      if (!event) {
+        throw new Error("Please select a valid event");
+      }
+      if (!user || user.role !== "employee") {
+        throw new Error("Please select a valid employee email");
+      }
+      // Create booking
+      const response = await axiosInstance.post("/bookings/admin", {
+        eventId: bookingForm.eventId,
+        email: bookingForm.employeeEmail,
+      });
+      alert("Booking created successfully!");
+      console.log("Booking created:", response.data.booking);
+      setBookingForm({ eventQuery: "", eventId: "", employeeEmail: "" });
+      setIsBookingFormOpen(false);
+      // Refresh booked employees if viewing the event
+      if (selectedEvent === bookingForm.eventId) {
+        const updatedResponse = await axiosInstance.get(
+          `/bookings/event/${selectedEvent}`
+        );
+        setBookedEmployees(updatedResponse.data.bookings || []);
+      }
+    } catch (err) {
+      setError(
+        err.response?.data?.message || err.message || "Failed to create booking"
+      );
+      console.error("Booking error:", err.response?.data || err.message);
+    }
+  };
+
+  const toggleBookingForm = () => {
+    setIsBookingFormOpen((prev) => !prev);
+    console.log("Booking form toggled:", !isBookingFormOpen);
+  };
+
   const filteredEvents = events.filter((event) =>
     searchQuery
       ? event.eventName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -157,15 +259,11 @@ const AdminEvents = () => {
       : true
   );
 
-  // Get unique events for suggestions
   const uniqueEvents = [
     ...new Map(
       events.map((event) => [
         event._id,
-        {
-          eventName: event.eventName,
-          auditorium: event.auditorium,
-        },
+        { eventName: event.eventName, auditorium: event.auditorium },
       ])
     ).values(),
   ].filter(
@@ -182,14 +280,96 @@ const AdminEvents = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Manage Events</h2>
+      <h2 className="text-2xl font-bold mb-4">Manage Events</h2>
       {error && <p className="text-red-500 mb-4">{error}</p>}
-      <Link
-        to="/admin/events/new"
-        className="mb-6 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-      >
-        Create New Event
-      </Link>
+      <div className="flex space-x-4 mb-6">
+        <Link
+          to="/admin/events/new"
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          Create New Event
+        </Link>
+        <button
+          onClick={toggleBookingForm}
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          {isBookingFormOpen ? "Close Booking Form" : "Book Event"}
+        </button>
+      </div>
+      {/* Book Event for Employee Form */}
+      {isBookingFormOpen && (
+        <div className="mb-6 p-6 bg-white rounded-lg shadow-md">
+          <h3 className="text-xl font-semibold mb-4">
+            Book Event for Employee
+          </h3>
+          <form onSubmit={handleBookingSubmit}>
+            <div className="mb-4 relative" ref={eventRef}>
+              <label className="block text-gray-700 mb-1">
+                Event Name or Auditorium
+              </label>
+              <input
+                type="text"
+                name="eventQuery"
+                value={bookingForm.eventQuery}
+                onChange={handleBookingChange}
+                placeholder="Search by event name or auditorium"
+                className="w-full p-2 border rounded"
+                required
+                onFocus={() =>
+                  setShowEventDropdown(bookingForm.eventQuery.length > 0)
+                }
+              />
+              {showEventDropdown && eventSuggestions.length > 0 && (
+                <ul className="absolute z-10 w-full bg-white border rounded shadow-md mt-1 max-h-60 overflow-y-auto">
+                  {eventSuggestions.map((event) => (
+                    <li
+                      key={event._id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => handleEventSuggestionClick(event)}
+                    >
+                      {event.eventName} ({event.auditorium})
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="mb-4 relative" ref={userRef}>
+              <label className="block text-gray-700 mb-1">Employee Email</label>
+              <input
+                type="email"
+                name="employeeEmail"
+                value={bookingForm.employeeEmail}
+                onChange={handleBookingChange}
+                placeholder="Enter employee email"
+                className="w-full p-2 border rounded"
+                required
+                onFocus={() =>
+                  setShowUserDropdown(bookingForm.employeeEmail.length > 0)
+                }
+              />
+              {showUserDropdown && userSuggestions.length > 0 && (
+                <ul className="absolute z-10 w-full bg-white border rounded shadow-md mt-1 max-h-60 overflow-y-auto">
+                  {userSuggestions.map((user) => (
+                    <li
+                      key={user._id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => handleUserSuggestionClick(user)}
+                    >
+                      {user.name} ({user.email})
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+            >
+              Book Event
+            </button>
+          </form>
+        </div>
+      )}
       <div className="mb-4 relative" ref={searchRef}>
         <input
           type="text"
@@ -250,7 +430,7 @@ const AdminEvents = () => {
           ))
         )}
       </div>
-
+      {/* Employee Management Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg max-w-2xl w-full">
@@ -267,7 +447,7 @@ const AdminEvents = () => {
                     <p>Attendance: {booking.attendance}</p>
                     <p>Fine: ₹{booking.fine.toFixed(2)}</p>
                     {booking.cancellationRequested && (
-                      <p className="text-red-500">Cancellation Requested</p>
+                      <p className="text-red-600">Cancellation Requested</p>
                     )}
                     <div className="flex space-x-2 mt-2">
                       <button
@@ -290,7 +470,7 @@ const AdminEvents = () => {
                       </button>
                       <button
                         onClick={() => handleRemoveEmployee(booking._id)}
-                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
                       >
                         Remove
                       </button>

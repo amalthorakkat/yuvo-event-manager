@@ -50,6 +50,56 @@ const createBooking = async (req, res) => {
   }
 };
 
+const createAdminBooking = async (req, res) => {
+  try {
+    const { eventId, email } = req.body;
+
+    // Validate event
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Validate user
+    const user = await User.findOne({ email });
+    if (!user || user.role !== "employee") {
+      return res.status(400).json({ message: "Invalid employee email" });
+    }
+
+    // Check if booking already exists
+    const existingBooking = await Booking.findOne({
+      event: eventId,
+      user: user._id,
+      status: "booked",
+    });
+    if (existingBooking) {
+      return res
+        .status(400)
+        .json({ message: "Employee is already booked for this event" });
+    }
+
+    // Create booking (omit attendance, as it defaults to "pending")
+    const booking = new Booking({
+      event: eventId,
+      user: user._id,
+      status: "booked",
+      fine: 0,
+      cancellationRequested: false,
+    });
+
+    await booking.save();
+    console.log("Admin booking created:", {
+      bookingId: booking._id,
+      eventId,
+      userId: user._id,
+    });
+    res.status(201).json({ message: "Booking created successfully", booking });
+  } catch (error) {
+    console.error("Error in createAdminBooking:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 const requestCancellation = async (req, res) => {
   try {
     const { bookingId } = req.body;
@@ -580,4 +630,5 @@ module.exports = {
   processPayment,
   getPaymentHistory,
   getWageConfig,
+  createAdminBooking,
 };

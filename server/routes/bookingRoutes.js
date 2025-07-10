@@ -16,11 +16,15 @@ const {
   processPayment,
   getPaymentHistory,
   getWageConfig,
+  createAdminBooking,
 } = require("../controllers/bookingController");
 const { protect, restrictTo } = require("../middlewares/authMiddleware");
 
 // Book an event (employee-only)
 router.post("/", protect, restrictTo("employee"), createBooking);
+
+// Book an event for employee (admin-only)
+router.post("/admin", protect, restrictTo("admin"), createAdminBooking);
 
 // Request cancellation (employee-only)
 router.post("/cancel", protect, restrictTo("employee"), requestCancellation);
