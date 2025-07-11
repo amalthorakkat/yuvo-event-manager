@@ -20,7 +20,11 @@ const WageConfig = () => {
     supervisorWage: null,
   });
   const [showWageForm, setShowWageForm] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false); // Add modal state
+  const [modalSearchQuery, setModalSearchQuery] = useState(""); // Add modal search state
+  const [showModalSuggestions, setShowModalSuggestions] = useState(false); // Add modal suggestions state
   const searchRef = useRef(null);
+  const modalSearchRef = useRef(null); // Add ref for modal search
 
   useEffect(() => {
     console.log("WageConfig: User:", user);
@@ -34,6 +38,12 @@ const WageConfig = () => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setShowSuggestions(false);
+      }
+      if (
+        modalSearchRef.current &&
+        !modalSearchRef.current.contains(event.target)
+      ) {
+        setShowModalSuggestions(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -158,17 +168,34 @@ const WageConfig = () => {
     }
   };
 
-  // Filter payment history based on search query
-  const filteredPaymentHistory = paymentHistory.filter((payment) =>
-    searchQuery
-      ? payment.employeeId.name
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        payment.employeeId.email
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase())
-      : true
-  );
+  // Filter and sort payment history (most recent first)
+  const filteredPaymentHistory = paymentHistory
+    .filter((payment) =>
+      searchQuery
+        ? payment.employeeId.name
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          payment.employeeId.email
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())
+        : true
+    )
+    .sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate)) // Sort by date descending
+    .slice(0, 4); // Show only top 4
+
+  // Filter and sort payment history for modal (all entries)
+  const modalFilteredPaymentHistory = paymentHistory
+    .filter((payment) =>
+      modalSearchQuery
+        ? payment.employeeId.name
+            .toLowerCase()
+            .includes(modalSearchQuery.toLowerCase()) ||
+          payment.employeeId.email
+            .toLowerCase()
+            .includes(modalSearchQuery.toLowerCase())
+        : true
+    )
+    .sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate)); // Sort by date descending
 
   // Get unique employees for suggestions
   const uniqueEmployees = [
@@ -183,8 +210,12 @@ const WageConfig = () => {
     ).values(),
   ].filter(
     (employee) =>
-      employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchQuery.toLowerCase())
+      employee.name
+        .toLowerCase()
+        .includes((modalSearchQuery || searchQuery).toLowerCase()) ||
+      employee.email
+        .toLowerCase()
+        .includes((modalSearchQuery || searchQuery).toLowerCase())
   );
 
   const handleSearchChange = (e) => {
@@ -192,9 +223,31 @@ const WageConfig = () => {
     setShowSuggestions(e.target.value.length > 0);
   };
 
+  const handleModalSearchChange = (e) => {
+    setModalSearchQuery(e.target.value);
+    setShowModalSuggestions(e.target.value.length > 0);
+  };
+
   const handleSuggestionClick = (value) => {
     setSearchQuery(value);
     setShowSuggestions(false);
+  };
+
+  const handleModalSuggestionClick = (value) => {
+    setModalSearchQuery(value);
+    setShowModalSuggestions(false);
+  };
+
+  const openPaymentModal = () => {
+    setIsPaymentModalOpen(true);
+    setModalSearchQuery(""); // Reset modal search
+    setShowModalSuggestions(false);
+  };
+
+  const closePaymentModal = () => {
+    setIsPaymentModalOpen(false);
+    setModalSearchQuery("");
+    setShowModalSuggestions(false);
   };
 
   if (loading) return <div>Loading...</div>;
@@ -433,9 +486,84 @@ const WageConfig = () => {
                 </p>
               </div>
             ))}
+            <button
+              onClick={openPaymentModal}
+              className="mt-4 p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Show More
+            </button>
           </div>
         )}
       </div>
+
+      {/* Payment History Modal */}
+      {isPaymentModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <h3 className="text-xl font-bold mb-4">Full Payment History</h3>
+            <div className="mb-4 relative" ref={modalSearchRef}>
+              <input
+                type="text"
+                value={modalSearchQuery}
+                onChange={handleModalSearchChange}
+                placeholder="Search payment history by name or email"
+                className="p-2 border rounded w-full"
+                onFocus={() =>
+                  setShowModalSuggestions(modalSearchQuery.length > 0)
+                }
+              />
+              {showModalSuggestions && uniqueEmployees.length > 0 && (
+                <ul className="absolute z-10 w-full bg-white border rounded shadow-md mt-1 max-h-60 overflow-y-auto">
+                  {uniqueEmployees.map((employee, index) => (
+                    <li
+                      key={index}
+                      className="p-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() =>
+                        handleModalSuggestionClick(
+                          employee.name || employee.email
+                        )
+                      }
+                    >
+                      {employee.name} ({employee.email})
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {modalFilteredPaymentHistory.length === 0 ? (
+              <p>No payment history available.</p>
+            ) : (
+              <div className="grid gap-4">
+                {modalFilteredPaymentHistory.map((payment, index) => (
+                  <div
+                    key={index}
+                    className="p-4 bg-white rounded-lg shadow-md"
+                  >
+                    <p>
+                      <strong>Employee:</strong> {payment.employeeId.name} (
+                      {payment.employeeId.email})
+                    </p>
+                    <p>
+                      <strong>Amount Paid:</strong> ₹
+                      {payment.amountPaid.toFixed(2)}
+                    </p>
+                    <p>
+                      <strong>Payment Date:</strong>{" "}
+                      {new Date(payment.paymentDate).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={closePaymentModal}
+              className="mt-4 p-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
