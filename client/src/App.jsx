@@ -16,6 +16,7 @@ import CancellationRequests from "./components/CancellationRequests";
 import SupervisorDashboard from "./components/SupervisorDashboard";
 import EmployeeDashboard from "./components/EmployeeDashboard";
 import WageConfig from "./components/WageConfig";
+import AuditoruimListing from "./components/auditoruimListing/AuditoruimListing.jsx";
 import { useContext } from "react";
 
 const ProtectedRoute = ({ children, role }) => {
@@ -36,7 +37,7 @@ function App() {
     <AuthProvider>
       <Routes>
         <Route path="/" element={<UserLayouts />}>
-          <Route index element={<Navigate to="/events" />} />
+          <Route index element={<AuditoruimListing/>} />
           <Route path="login" element={<Login />} />
           <Route path="events" element={<EventList />} />
           <Route

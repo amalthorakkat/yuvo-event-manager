@@ -5,3 +5,34 @@
   margin: 0;
   padding: 0;
 }
+
+/* Hide scrollbar */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Enhanced glassmorphism effect - not available in Tailwind */
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 640px) {
+  .top-6.left-6,
+  .top-6.right-6 {
+    top: 1rem;
+  }
+
+  .top-6.left-6 {
+    left: 1rem;
+  }
+
+  .top-6.right-6 {
+    right: 1rem;
+  }
+}
