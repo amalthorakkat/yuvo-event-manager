@@ -37,7 +37,7 @@ const AudHeader = () => {
             <img
               src={YEMtext}
               alt="YEM Text"
-              className="h-3 w-[100%] flex-shrink-0"
+              className="h-[9px] w-[100%] flex-shrink-0"
             />
           </div>
         </button>
