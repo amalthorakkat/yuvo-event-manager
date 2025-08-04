@@ -102,12 +102,23 @@ const AdminDashboard = () => {
           >
             Wage Config
           </NavLink>
+          <NavLink
+            to="/admin/auditoriums"
+            className={({ isActive }) =>
+              isActive
+                ? "block p-2 bg-blue-500 rounded"
+                : "block p-2 hover:bg-blue-500 rounded"
+            }
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Manage Auditoriums
+          </NavLink>
         </nav>
       </aside>
       {/* Main Content */}
       <main className="flex-1 p-6 bg-gray-100">
         <Outlet />
-      </main> 
+      </main>
     </div>
   );
 };

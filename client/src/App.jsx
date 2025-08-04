@@ -18,6 +18,10 @@ import EmployeeDashboard from "./components/EmployeeDashboard";
 import WageConfig from "./components/WageConfig";
 import AuditoruimListing from "./components/auditoruimListing/AuditoruimListing.jsx";
 import { useContext } from "react";
+import AudDetails from "./components/auditoruimListing/AudDetails.jsx";
+import AdminAuditoriums from "./components/auditoruimListing/AdminAuditoriums.jsx";
+import AdminAuditoriumForm from "./components/auditoruimListing/AdminAuditoriumForm.jsx";
+import AuditoriumList from "./components/auditoruimListing/AuditoriumList.jsx";
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, loading } = useContext(AuthContext);
@@ -37,7 +41,9 @@ function App() {
     <AuthProvider>
       <Routes>
         <Route path="/" element={<UserLayouts />}>
-          <Route index element={<AuditoruimListing/>} />
+          <Route index element={<AuditoruimListing />} />
+          <Route path="/auditoriums" element={<AuditoriumList/>} />
+          <Route path="/auditoriums/details/:id" element={<AudDetails />} />
           <Route path="login" element={<Login />} />
           <Route path="events" element={<EventList />} />
           <Route
@@ -56,7 +62,13 @@ function App() {
             <Route path="users" element={<AdminUsers />} />
             <Route path="cancellations" element={<CancellationRequests />} />
             <Route path="wages" element={<WageConfig />} />
-   
+            {/* auditorium  */}
+            <Route path="auditoriums" element={<AdminAuditoriums />} />
+            <Route path="auditoriums/new" element={<AdminAuditoriumForm />} />
+            <Route
+              path="auditoriums/edit/:id"
+              element={<AdminAuditoriumForm />}
+            />
           </Route>
           <Route
             path="supervisor"
