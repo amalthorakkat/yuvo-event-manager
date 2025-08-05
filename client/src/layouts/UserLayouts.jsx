@@ -13,7 +13,7 @@ const UserLayouts = () => {
     location.pathname.startsWith("/auditoriums") || location.pathname === "/";
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex  flex-col min-h-screen">
       {isAuditoriumRoute ? <AudHeader /> : <Header />}
 
       <main className="flex-grow">

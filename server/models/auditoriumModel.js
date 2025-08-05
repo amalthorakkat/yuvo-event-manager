@@ -1,12 +1,9 @@
-
-// Importing mongoose for schema creation
 const mongoose = require("mongoose");
 
-// Defining the auditorium schema
 const auditoriumSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    description: { type: String, required: true },
+    name: { type: String },
+    description: { type: String },
     location: {
       address: { type: String },
       city: { type: String },
@@ -17,7 +14,7 @@ const auditoriumSchema = new mongoose.Schema(
       },
       mapUrl: { type: String },
     },
-    capacity: { type: Number },
+    capacity: { type: String }, 
     pricePerDay: { type: Number },
     facilities: {
       ac: { type: Boolean },
@@ -38,12 +35,11 @@ const auditoriumSchema = new mongoose.Schema(
     images: [
       {
         src: { type: String },
-        alt: { type: String },
+        alt: { type: String }, 
       },
     ],
   },
   { timestamps: true }
 );
 
-// Exporting the Auditorium model
 module.exports = mongoose.model("Auditorium", auditoriumSchema);

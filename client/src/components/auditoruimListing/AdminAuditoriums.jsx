@@ -8,7 +8,6 @@ const AdminAuditoriums = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    // Fetch all auditoriums
     const fetchAuditoriums = async () => {
       try {
         const response = await axiosInstance.get("/auditoriums");
@@ -20,7 +19,6 @@ const AdminAuditoriums = () => {
     fetchAuditoriums();
   }, []);
 
-  // Handle auditorium deletion
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this auditorium?")) {
       try {
@@ -33,7 +31,6 @@ const AdminAuditoriums = () => {
     }
   };
 
-  // Filter auditoriums based on search query
   const filteredAuditoriums = auditoriums.filter(
     (aud) =>
       aud.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -42,11 +39,9 @@ const AdminAuditoriums = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Page Header */}
       <h2 className="text-2xl font-bold mb-4">Manage Auditoriums</h2>
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
-      {/* Create New Auditorium Button */}
       <div className="mb-6">
         <Link
           to="/admin/auditoriums/new"
@@ -56,7 +51,6 @@ const AdminAuditoriums = () => {
         </Link>
       </div>
 
-      {/* Search Bar */}
       <div className="mb-4">
         <input
           type="text"
@@ -67,7 +61,6 @@ const AdminAuditoriums = () => {
         />
       </div>
 
-      {/* Auditorium List */}
       <div className="grid gap-4">
         {filteredAuditoriums.length === 0 ? (
           <p>No auditoriums found.</p>
@@ -76,8 +69,13 @@ const AdminAuditoriums = () => {
             <div key={aud._id} className="p-4 bg-white rounded-lg shadow-md">
               <h3 className="text-xl font-semibold">{aud.name}</h3>
               <p>City: {aud.location.city}</p>
-              <p>Capacity: {aud.capacity} guests</p>
-              <p>Price: ₹{aud.pricePerDay}/day</p>
+              <p>Capacity: {aud.capacity || "Not specified"}</p>
+              <p>
+                Price:{" "}
+                {aud.pricePerDay
+                  ? `₹${aud.pricePerDay.toLocaleString("en-IN")}/day`
+                  : "Not specified"}
+              </p>
               <div className="flex space-x-2 mt-2">
                 <Link
                   to={`/admin/auditoriums/edit/${aud._id}`}

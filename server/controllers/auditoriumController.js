@@ -21,12 +21,20 @@ const uploadToCloudinary = (file) => {
   });
 };
 
+// Parse comma-formatted number (e.g., "1,234.56" or "1234,56" to 1234.56)
+const parseNumber = (value) => {
+  if (!value || value.trim() === "") return undefined;
+  const cleanedValue = value.replace(/,/g, "");
+  const number = Number(cleanedValue);
+  return isNaN(number) ? undefined : number;
+};
+
 exports.getAllAuditoriums = async (req, res) => {
   try {
     const { city, capacity, facilities, minPrice, maxPrice } = req.query;
     let query = {};
-    if (city) query["location.city"] = new RegExp(`^${city}$`, "i"); // Exact case-insensitive match
-    if (capacity) query.capacity = { $gte: Number(capacity) };
+    if (city) query["location.city"] = new RegExp(`^${city}$`, "i");
+    if (capacity) query.capacity = capacity; // Now a string
     if (minPrice || maxPrice) {
       query.pricePerDay = {};
       if (minPrice && !isNaN(Number(minPrice)))
@@ -51,7 +59,7 @@ exports.getAllAuditoriums = async (req, res) => {
         }
       });
     }
-    console.log("MongoDB Query:", query); // Debug log
+    console.log("MongoDB Query:", query);
     const auditoriums = await Auditorium.find(query);
     res.status(200).json({ auditoriums });
   } catch (error) {
@@ -90,7 +98,27 @@ exports.createAuditorium = async (req, res) => {
 
     const auditoriumData = {
       ...req.body,
-      images: imageUrls.length > 0 ? imageUrls : req.body.images || [],
+      location: {
+        ...req.body.location,
+        coordinates: {
+          lat: req.body.location?.coordinates?.lat
+            ? parseNumber(req.body.location.coordinates.lat)
+            : undefined,
+          lng: req.body.location?.coordinates?.lng
+            ? parseNumber(req.body.location.coordinates.lng)
+            : undefined,
+        },
+      },
+      capacity: req.body.capacity || undefined,
+      pricePerDay: req.body.pricePerDay
+        ? parseNumber(req.body.pricePerDay)
+        : undefined,
+      images:
+        imageUrls.length > 0
+          ? imageUrls
+          : req.body.images
+          ? JSON.parse(req.body.images)
+          : [],
     };
 
     const auditorium = new Auditorium(auditoriumData);
@@ -119,7 +147,27 @@ exports.updateAuditorium = async (req, res) => {
 
     const auditoriumData = {
       ...req.body,
-      images: imageUrls.length > 0 ? imageUrls : req.body.images || [],
+      location: {
+        ...req.body.location,
+        coordinates: {
+          lat: req.body.location?.coordinates?.lat
+            ? parseNumber(req.body.location.coordinates.lat)
+            : undefined,
+          lng: req.body.location?.coordinates?.lng
+            ? parseNumber(req.body.location.coordinates.lng)
+            : undefined,
+        },
+      },
+      capacity: req.body.capacity || undefined,
+      pricePerDay: req.body.pricePerDay
+        ? parseNumber(req.body.pricePerDay)
+        : undefined,
+      images:
+        imageUrls.length > 0
+          ? imageUrls
+          : req.body.images
+          ? JSON.parse(req.body.images)
+          : [],
     };
 
     const auditorium = await Auditorium.findByIdAndUpdate(
