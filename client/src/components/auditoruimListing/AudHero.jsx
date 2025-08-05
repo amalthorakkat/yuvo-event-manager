@@ -26,7 +26,7 @@ const AudHero = () => {
   return (
     <div>
       {/* Header Section */}
-      <div className="text-2xl md:text-[40px] items-center justify-center text-center p-6 mt-10 mb-10">
+      <div className="text-2xl md:text-[40px] items-center justify-center text-center p-6 mt-20 mb-10">
         <h1>
           Tired of Searching for the <br />{" "}
           <span className="font-bold ">Perfect Event Centre?</span>

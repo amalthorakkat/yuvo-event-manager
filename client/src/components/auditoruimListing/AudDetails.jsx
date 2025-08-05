@@ -108,7 +108,7 @@ const AudDetails = () => {
     );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 mt-20 ">
       {/* Header Section */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -144,7 +144,9 @@ const AudDetails = () => {
             >
               <div
                 className="flex h-full transition-transform duration-500 ease-out"
-                style={{ transform: `translateX(-${currentImageIndex * 100}%)` }}
+                style={{
+                  transform: `translateX(-${currentImageIndex * 100}%)`,
+                }}
               >
                 {auditorium.images.map((img, index) => (
                   <img
@@ -257,7 +259,9 @@ const AudDetails = () => {
 
             {/* Rules Section */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Rules</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                Rules
+              </h2>
               <div className="space-y-4">
                 <div className="flex items-center p-3 rounded-lg border border-gray-200">
                   {auditorium.rules.smokingAllowed ? (
@@ -267,7 +271,9 @@ const AudDetails = () => {
                   )}
                   <span className="text-gray-700">
                     Smoking:{" "}
-                    {auditorium.rules.smokingAllowed ? "Allowed" : "Not Allowed"}
+                    {auditorium.rules.smokingAllowed
+                      ? "Allowed"
+                      : "Not Allowed"}
                   </span>
                 </div>
                 <div className="flex items-center p-3 rounded-lg border border-gray-200">
@@ -278,7 +284,9 @@ const AudDetails = () => {
                   )}
                   <span className="text-gray-700">
                     Alcohol:{" "}
-                    {auditorium.rules.alcoholAllowed ? "Allowed" : "Not Allowed"}
+                    {auditorium.rules.alcoholAllowed
+                      ? "Allowed"
+                      : "Not Allowed"}
                   </span>
                 </div>
               </div>
